@@ -1147,9 +1147,9 @@ public:
      */
     Snapshot<Entity> snapshot() {
         using func_type = entity_type(*)(Registry &, entity_type);
-        const auto seed = available ? (next | (entities[next] & ~traits_type::entity_mask)) : next;
+        const entity_type seed = available ? (next | (entities[next] & ~traits_type::entity_mask)) : next;
 
-        func_type follow = [](Registry &registry, entity_type entity) {
+        func_type follow = [](Registry &registry, entity_type entity) -> entity_type {
             const auto &entities = registry.entities;
             const auto entt = entity & traits_type::entity_mask;
             const auto next = entities[entt] & traits_type::entity_mask;
