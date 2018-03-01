@@ -415,3 +415,18 @@ TEST(DefaultRegistry, SortMulti) {
         ASSERT_EQ(registry.get<int>(entity), ival++);
     }
 }
+
+TEST(DefaultRegistry, ComponentsWithTypesFromStandardTemplateLibrary) {
+    // see #37 - the test shouldn't crash, that's all
+    entt::DefaultRegistry registry;
+    auto entity = registry.create();
+    registry.assign<std::unordered_set<int>>(entity).insert(42);
+    registry.destroy(entity);
+}
+
+TEST(DefaultRegistry, ConstructWithComponents) {
+    // it should compile, that's all
+    entt::DefaultRegistry registry;
+    const auto value = 0;
+    registry.create(value);
+}
