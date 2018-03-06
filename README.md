@@ -42,6 +42,8 @@
       * [Delegate](#delegate)
       * [Event dispatcher](#event-dispatcher)
       * [Event emitter](#event-emitter)
+   * [License](#license)
+   * [Support](#support)
 
 # Introduction
 
@@ -189,19 +191,19 @@ Dell XPS 13 out of the mid 2014):
 
 | Benchmark | EntityX (compile-time) | EnTT |
 |-----------|-------------|-------------|
-| Create 10M entities | 0.1289s | **0.0423s** |
-| Destroy 10M entities | 0.0531s | **0.0221s** |
-| Standard view, 10M entities, one component | 0.0107s | **7.8e-08s** |
-| Standard view, 10M entities, two components | **0.0113s** | 0.0142s |
-| Standard view, 10M entities, two components<br/>Half of the entities have all the components | 0.0078s | **0.0072s** |
-| Standard view, 10M entities, two components<br/>One of the entities has all the components | 0.0071s | **5.5e-07s** |
-| Persistent view, 10M entities, two components | 0.0113s | **1.1e-07s** |
-| Standard view, 10M entities, five components | **0.0091s** | 0.0352s |
-| Persistent view, 10M entities, five components | 0.0091s | **2.5e-07s** |
-| Standard view, 10M entities, ten components | **0.0105s** | 0.0780s |
-| Standard view, 10M entities, ten components<br/>Half of the entities have all the components | **0.0090s** | 0.0407s |
-| Standard view, 10M entities, ten components<br/>One of the entities has all the components | 0.0070s | **1.3e-06s** |
-| Persistent view, 10M entities, ten components | 0.0105s | **5.0e-07s** |
+| Create 1M entities | 0.0167s | **0.0046s** |
+| Destroy 1M entities | 0.0053s | **0.0022s** |
+| Standard view, 1M entities, one component | 0.0012s | **1.9e-07s** |
+| Standard view, 1M entities, two components | **0.0012s** | 0.0013s |
+| Standard view, 1M entities, two components<br/>Half of the entities have all the components | 0.0009s | **0.0007s** |
+| Standard view, 1M entities, two components<br/>One of the entities has all the components | 0.0008s | **1.3e-06s** |
+| Persistent view, 1M entities, two components | 0.0012s | **2.8e-07s** |
+| Standard view, 1M entities, five components | **0.0010s** | 0.0034s |
+| Persistent view, 1M entities, five components | 0.0010s | **2.8e-07s** |
+| Standard view, 1M entities, ten components | **0.0011s** | 0.0075s |
+| Standard view, 1M entities, ten components<br/>Half of the entities have all the components | **0.0010s** | 0.0041s |
+| Standard view, 1M entities, ten components<br/>One of the entities has all the components | 0.0008s | **1.7e-06s** |
+| Persistent view, 1M entities, ten components | 0.0011s | **3.0e-07s** |
 | Sort 150k entities, one component<br/>Arrays are in reverse order | - | **0.0040s** |
 | Sort 150k entities, enforce permutation<br/>Arrays are in reverse order | - | **0.0006s** |
 
@@ -2379,7 +2381,9 @@ Code released under
 Docs released under
 [Creative Commons](https://github.com/skypjack/entt/blob/master/docs/LICENSE).
 
-# Donation
+# Support
+
+## Donation
 
 Developing and maintaining `EnTT` takes some time and lots of coffee. I'd like
 to add more and more functionalities in future and turn it in a full-featured
@@ -2389,3 +2393,11 @@ Italy, we're used to turning the best coffee ever in code. If you find that
 it's not enough, feel free to support me the way you prefer.<br/>
 Take a look at the donation button at the top of the page for more details or
 just click [here](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=W2HF9FESD5LJY&lc=IT&item_name=Michele%20Caini&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHosted).
+
+## Hire me
+
+If you start using `EnTT` and need help, if you want a new feature and want me
+to give it the highest priority, or for any other reason, I'm available for
+hiring.<br/>
+Feel free to take a look at my [profile](https://github.com/skypjack) and
+contact me by mail.

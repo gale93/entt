@@ -57,6 +57,7 @@ class SparseSet<Entity> {
     using traits_type = entt_traits<Entity>;
 
     struct Iterator final {
+        using difference_type = std::size_t;
         using value_type = Entity;
 
         Iterator(const std::vector<value_type> &direct, std::size_t pos)
@@ -70,6 +71,15 @@ class SparseSet<Entity> {
         Iterator operator++(int) noexcept {
             Iterator orig = *this;
             return ++(*this), orig;
+        }
+
+        Iterator & operator+=(difference_type value) noexcept {
+            pos -= value;
+            return *this;
+        }
+
+        Iterator operator+(difference_type value) noexcept {
+            return Iterator{direct, pos-value};
         }
 
         bool operator==(const Iterator &other) const noexcept {
@@ -233,7 +243,7 @@ public:
         assert(has(entity));
         const auto entt = entity & traits_type::entity_mask;
         // we must get rid of the in-use bit for it's not part of the position
-        return reverse[entt] & ~in_use;
+        return reverse[entt] & traits_type::entity_mask;
     }
 
     /**
@@ -278,10 +288,9 @@ public:
         assert(has(entity));
         const auto entt = entity & traits_type::entity_mask;
         const auto back = direct.back() & traits_type::entity_mask;
-        const auto pos = reverse[entt] & ~in_use;
-        // the order matters: if back and entt are the same (for the sparse set
-        // has size 1), switching the two lines below doesn't work as expected
-        reverse[back] = pos | in_use;
+        // we must get rid of the in-use bit for it's not part of the position
+        const auto pos = reverse[entt] & traits_type::entity_mask;
+        reverse[back] = reverse[entt];
         reverse[entt] = pos;
         // swapping isn't required here, we are getting rid of the last element
         direct[pos] = direct.back();
@@ -331,7 +340,7 @@ public:
      *
      * @param other The sparse sets that imposes the order of the entities.
      */
-    virtual void respect(const SparseSet<Entity> &other) noexcept {
+    void respect(const SparseSet<Entity> &other) noexcept {
         auto from = other.begin();
         auto to = other.end();
 
@@ -520,7 +529,7 @@ public:
      */
     template<typename... Args>
     std::enable_if_t<std::is_constructible<Type, Args...>::value, object_type &>
-    construct(entity_type entity, Args&&... args) {
+    construct(entity_type entity, Args &&... args) {
         underlying_type::construct(entity);
         instances.emplace_back(std::forward<Args>(args)...);
         return instances.back();
@@ -548,9 +557,9 @@ public:
      */
     template<typename... Args>
     std::enable_if_t<!std::is_constructible<Type, Args...>::value, object_type &>
-    construct(entity_type entity, Args&&... args) {
+    construct(entity_type entity, Args &&... args) {
         underlying_type::construct(entity);
-        instances.emplace_back(Type{ std::forward<Args>(args)... });
+        instances.emplace_back(Type{std::forward<Args>(args)...});
         return instances.back();
     }
 
@@ -610,8 +619,8 @@ public:
             auto next = copy[curr];
 
             while(curr != next) {
-                auto lhs = copy[curr];
-                auto rhs = copy[next];
+                const auto lhs = copy[curr];
+                const auto rhs = copy[next];
                 std::swap(instances[lhs], instances[rhs]);
                 underlying_type::swap(lhs, rhs);
                 copy[curr] = curr;
@@ -643,7 +652,7 @@ public:
      *
      * @param other The sparse sets that imposes the order of the entities.
      */
-    void respect(const SparseSet<Entity> &other) noexcept override {
+    void respect(const SparseSet<Entity> &other) noexcept {
         auto from = other.begin();
         auto to = other.end();
 
@@ -651,9 +660,11 @@ public:
         const auto *local = underlying_type::data();
 
         while(pos > 0 && from != to) {
-            if(underlying_type::has(*from)) {
-                if(*from != *(local + pos)) {
-                    auto candidate = underlying_type::get(*from);
+            const auto curr = *from;
+
+            if(underlying_type::has(curr)) {
+                if(curr != *(local + pos)) {
+                    auto candidate = underlying_type::get(curr);
                     std::swap(instances[pos], instances[candidate]);
                     underlying_type::swap(pos, candidate);
                 }

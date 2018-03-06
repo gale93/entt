@@ -1,6 +1,9 @@
+#include <unordered_map>
 #include <unordered_set>
 #include <functional>
+#include <type_traits>
 #include <gtest/gtest.h>
+#include <entt/entity/entt_traits.hpp>
 #include <entt/entity/registry.hpp>
 
 TEST(DefaultRegistry, Functionalities) {
@@ -145,6 +148,22 @@ TEST(DefaultRegistry, CreateDestroyCornerCase) {
 
     ASSERT_EQ(registry.current(e0), entt::DefaultRegistry::version_type{1});
     ASSERT_EQ(registry.current(e1), entt::DefaultRegistry::version_type{1});
+}
+
+TEST(DefaultRegistry, VersionOverflow) {
+    entt::DefaultRegistry registry;
+
+    auto entity = registry.create();
+    registry.destroy(entity);
+
+    ASSERT_EQ(registry.version(entity), entt::DefaultRegistry::version_type{});
+
+    for(auto i = entt::entt_traits<entt::DefaultRegistry::entity_type>::version_mask; i; --i) {
+        ASSERT_NE(registry.current(entity), registry.version(entity));
+        registry.destroy(registry.create());
+    }
+
+    ASSERT_EQ(registry.current(entity), registry.version(entity));
 }
 
 TEST(DefaultRegistry, Each) {
@@ -430,4 +449,44 @@ TEST(DefaultRegistry, ConstructWithComponents) {
     entt::DefaultRegistry registry;
     const auto value = 0;
     registry.create(value);
+}
+
+TEST(DefaultRegistry, MergeTwoRegistries) {
+    using entity_type = typename entt::DefaultRegistry::entity_type;
+
+    entt::DefaultRegistry src;
+    entt::DefaultRegistry dst;
+
+    std::unordered_map<entity_type, entity_type> ref;
+
+    auto merge = [&ref](const auto &view, auto &dst) {
+        view.each([&](auto entity, const auto &component) {
+            if(ref.find(entity) == ref.cend()) {
+                ref.emplace(entity, dst.create(component));
+            } else {
+                using component_type = std::decay_t<decltype(component)>;
+                dst.template assign<component_type>(ref[entity], component);
+            }
+        });
+    };
+
+    src.create<int, float, double>();
+    src.create<char, float, int>();
+
+    dst.create<int, char, double>();
+    dst.create<float, int>();
+
+    auto eq = [](auto begin, auto end) { ASSERT_EQ(begin, end); };
+    auto ne = [](auto begin, auto end) { ASSERT_NE(begin, end); };
+
+    eq(dst.view<int, float, double>().begin(), dst.view<int, float, double>().end());
+    eq(dst.view<char, float, int>().begin(), dst.view<char, float, int>().end());
+
+    merge(src.view<int>(), dst);
+    merge(src.view<char>(), dst);
+    merge(src.view<double>(), dst);
+    merge(src.view<float>(), dst);
+
+    ne(dst.view<int, float, double>().begin(), dst.view<int, float, double>().end());
+    ne(dst.view<char, float, int>().begin(), dst.view<char, float, int>().end());
 }

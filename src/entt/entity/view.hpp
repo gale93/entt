@@ -14,6 +14,13 @@ namespace entt {
 
 
 /**
+ * @brief Forward declaration of the registry class.
+ */
+template<typename>
+class Registry;
+
+
+/**
  * @brief Persistent view.
  *
  * A persistent view returns all the entities and only the entities that have
@@ -56,11 +63,18 @@ template<typename Entity, typename... Component>
 class PersistentView final {
     static_assert(sizeof...(Component) > 1, "!");
 
+    /*! @brief A registry is allowed to create views. */
+    friend class Registry<Entity>;
+
     template<typename Comp>
     using pool_type = SparseSet<Entity, Comp>;
 
     using view_type = SparseSet<Entity>;
     using pattern_type = std::tuple<pool_type<Component> &...>;
+
+    PersistentView(view_type &view, pool_type<Component> &... pools) noexcept
+        : view{view}, pools{pools...}
+    {}
 
 public:
     /*! Input iterator type. */
@@ -69,22 +83,6 @@ public:
     using entity_type = typename view_type::entity_type;
     /*! @brief Unsigned integer type. */
     using size_type = typename view_type::size_type;
-
-    /**
-     * @brief Constructs a persistent view around a dedicated pool of entities.
-     *
-     * A persistent view is created out of:
-     *
-     * * A dedicated pool of entities that is shared between all the persistent
-     * views of the same type.
-     * * A bunch of pools of components to which to refer to get instances.
-     *
-     * @param view Shared reference to a dedicated pool of entities.
-     * @param pools References to pools of components.
-     */
-    PersistentView(view_type &view, pool_type<Component>&... pools) noexcept
-        : view{view}, pools{pools...}
-    {}
 
     /**
      * @brief Returns the number of entities that have the given components.
@@ -350,6 +348,9 @@ template<typename Entity, typename... Component>
 class View final {
     static_assert(sizeof...(Component) > 1, "!");
 
+    /*! @brief A registry is allowed to create views. */
+    friend class Registry<Entity>;
+
     template<typename Comp>
     using pool_type = SparseSet<Entity, Comp>;
 
@@ -366,6 +367,7 @@ class View final {
         }
 
     public:
+        using difference_type = typename underlying_iterator_type::difference_type;
         using value_type = typename view_type::entity_type;
 
         Iterator(unchecked_type unchecked, underlying_iterator_type begin, underlying_iterator_type end) noexcept
@@ -383,6 +385,15 @@ class View final {
         Iterator operator++(int) noexcept {
             Iterator orig = *this;
             return ++(*this), orig;
+        }
+
+        Iterator & operator+=(difference_type value) noexcept {
+            begin += value;
+            return *this;
+        }
+
+        Iterator operator+(difference_type value) noexcept {
+            return Iterator{unchecked, begin+value, end};
         }
 
         bool operator==(const Iterator &other) const noexcept {
@@ -403,6 +414,12 @@ class View final {
         underlying_iterator_type end;
     };
 
+    View(pool_type<Component> &... pools) noexcept
+        : pools{pools...}, view{nullptr}, unchecked{}
+    {
+        reset();
+    }
+
 public:
     /*! Input iterator type. */
     using iterator_type = Iterator;
@@ -410,16 +427,6 @@ public:
     using entity_type = typename view_type::entity_type;
     /*! @brief Unsigned integer type. */
     using size_type = typename view_type::size_type;
-
-    /**
-     * @brief Constructs a view out of a bunch of pools of components.
-     * @param pools References to pools of components.
-     */
-    View(pool_type<Component>&... pools) noexcept
-        : pools{pools...}, view{nullptr}, unchecked{}
-    {
-        reset();
-    }
 
     /**
      * @brief Returns an iterator to the first entity that has the given
@@ -667,7 +674,14 @@ private:
  */
 template<typename Entity, typename Component>
 class View<Entity, Component> final {
+    /*! @brief A registry is allowed to create views. */
+    friend class Registry<Entity>;
+
     using pool_type = SparseSet<Entity, Component>;
+
+    View(pool_type &pool) noexcept
+        : pool{pool}
+    {}
 
 public:
     /*! Input iterator type. */
@@ -678,14 +692,6 @@ public:
     using size_type = typename pool_type::size_type;
     /*! Type of the component iterated by the view. */
     using raw_type = typename pool_type::object_type;
-
-    /**
-     * @brief Constructs a view out of a pool of components.
-     * @param pool A reference to a pool of components.
-     */
-    View(pool_type &pool) noexcept
-        : pool{pool}
-    {}
 
     /**
      * @brief Returns the number of entities that have the given component.
