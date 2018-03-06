@@ -657,7 +657,7 @@ the users.
 
 The goal of the serialization part is to allow users to make both a dump of the
 entire registry or a narrower snapshot, that is to select only the components
-and the tags in which they are interested.<be/>
+and the tags in which they are interested.<br/>
 Intuitively, the use cases are different. As an example, the first approach is
 suitable for local save/restore functionalities while the latter is suitable for
 creating client-server applications and for transferring somehow parts of the

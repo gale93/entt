@@ -34,6 +34,7 @@ class Registry;
  */
 template<typename Entity>
 class Snapshot final {
+    /*! @brief A registry is allowed to create snapshots. */
     friend class Registry<Entity>;
 
     using func_type = Entity(*)(Registry<Entity> &, Entity);
@@ -177,6 +178,7 @@ private:
  */
 template<typename Entity>
 class SnapshotLoader final {
+    /*! @brief A registry is allowed to create snapshot loaders. */
     friend class Registry<Entity>;
 
     using func_type = void(*)(Registry<Entity> &, Entity, bool);
@@ -352,8 +354,6 @@ private:
  */
 template<typename Entity>
 class ContinuousLoader final {
-    friend class Registry<Entity>;
-
     using traits_type = entt_traits<Entity>;
 
     Entity destroy(Entity entity) {
