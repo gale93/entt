@@ -76,7 +76,7 @@ Requests for feature, PR, suggestions ad feedback are highly appreciated.
 
 If you find you can help me and want to contribute to the `EnTT` framework with
 your experience or you do want to get part of the project for some other
-reason, feel free to contact me directly (you can find the mail in the
+reasons, feel free to contact me directly (you can find the mail in the
 [profile](https://github.com/skypjack)).<br/>
 I can't promise that each and every contribution will be accepted, but I can
 assure that I'll do my best to take them all seriously.
@@ -175,8 +175,7 @@ case.<br/>
 In the end, I did it, but it wasn't much satisfying. Actually it wasn't
 satisfying at all. The fastest and nothing more, fairly little indeed. When I
 realized it, I tried hard to keep intact the great performance of `EnTT` and to
-add all the features I wanted to see in *my* entity-component system at the same
-time.
+add all the features I wanted to see in *my own library* at the same time.
 
 Today `EnTT` is finally what I was looking for: still faster than its
 _competitors_, lower memory usage in the average case, a really good API and an
@@ -186,23 +185,23 @@ amazing set of features. And even more, of course.
 
 As it stands right now, `EnTT` is just fast enough for my requirements if
 compared to my first choice (it was already amazingly fast actually).<br/>
-Here is a comparison between the two (both of them compiled with GCC 7.3.0 on a
+Below is a comparison between the two (both of them compiled with GCC 7.3.0 on a
 Dell XPS 13 out of the mid 2014):
 
 | Benchmark | EntityX (compile-time) | EnTT |
 |-----------|-------------|-------------|
 | Create 1M entities | 0.0167s | **0.0046s** |
-| Destroy 1M entities | 0.0053s | **0.0022s** |
+| Destroy 1M entities | 0.0053s | **0.0039s** |
 | Standard view, 1M entities, one component | 0.0012s | **1.9e-07s** |
-| Standard view, 1M entities, two components | 0.0012s | **0.0010s** |
-| Standard view, 1M entities, two components<br/>Half of the entities have all the components | 0.0009s | **0.0006s** |
+| Standard view, 1M entities, two components | 0.0012s | **3.8e-07s** |
+| Standard view, 1M entities, two components<br/>Half of the entities have all the components | 0.0009s | **3.8e-07s** |
 | Standard view, 1M entities, two components<br/>One of the entities has all the components | 0.0008s | **1.0e-06s** |
 | Persistent view, 1M entities, two components | 0.0012s | **2.8e-07s** |
-| Standard view, 1M entities, five components | **0.0010s** | 0.0024s |
+| Standard view, 1M entities, five components | 0.0010s | **7.0e-07s** |
 | Persistent view, 1M entities, five components | 0.0010s | **2.8e-07s** |
-| Standard view, 1M entities, ten components | **0.0011s** | 0.0058s |
-| Standard view, 1M entities, ten components<br/>Half of the entities have all the components | **0.0010s** | 0.0032s |
-| Standard view, 1M entities, ten components<br/>One of the entities has all the components | 0.0008s | **1.7e-06s** |
+| Standard view, 1M entities, ten components | 0.0011s | **1.2e-06s** |
+| Standard view, 1M entities, ten components<br/>Half of the entities have all the components | 0.0010s | **1.2e-06s** |
+| Standard view, 1M entities, ten components<br/>One of the entities has all the components | 0.0008s | **1.2e-06s** |
 | Persistent view, 1M entities, ten components | 0.0011s | **3.0e-07s** |
 | Sort 150k entities, one component<br/>Arrays are in reverse order | - | **0.0036s** |
 | Sort 150k entities, enforce permutation<br/>Arrays are in reverse order | - | **0.0005s** |
@@ -210,15 +209,22 @@ Dell XPS 13 out of the mid 2014):
 Note: The default version of `EntityX` (`master` branch) wasn't added to the
 comparison because it's already much slower than its compile-time counterpart.
 
-`EnTT` includes its own tests and benchmarks. See
-[benchmark.cpp](https://github.com/skypjack/entt/blob/master/test/benchmark.cpp)
-for further details.<br/>
-On Github users can find also a
-[benchmark suite](https://github.com/abeimler/ecs_benchmark) that compares a
-bunch of different projects, one of which is `EnTT`.
+Pretty interesting, aren't them? In fact, these benchmarks are the same used by
+`EntityX` to show _how fast it is_. To be honest, they aren't so good and these
+results shouldn't be taken much seriously (they are completely unrealistic
+indeed).<br/>
+The proposed entity-component system is incredibly fast to iterate entities,
+this is a fact. The compiler can make a lot of optimizations because of how
+`EnTT` works, even more when components aren't used at all. This is exactly the
+case for these benchmarks.<br/>
+This is why they are completely wrong and cannot be used to evaluate any of the
+entity-component systems.
 
-Probably I'll try to get out of `EnTT` more features and better performance in
-the future, mainly for fun.<br/>
+If you decide to use `EnTT`, choose it because of its API and its performance,
+not because there is a benchmark somewhere that makes it seem the fastest.
+
+Probably I'll try to get out of `EnTT` more features and even better performance
+in the future, mainly for fun.<br/>
 If you want to contribute and/or have any suggestion, feel free to make a PR or
 open an issue to discuss your idea.
 
@@ -333,7 +339,7 @@ The `Registry` to store, the `View` to iterate. That's all.
 
 An entity (the _E_ of an _ECS_) is an opaque identifier that users should just
 use as-is and store around if needed. Do not try to inspect an entity
-identifier, its type can change in future and a registry offers all the
+identifier, its format can change in future and a registry offers all the
 functionalities to query them out-of-the-box. The underlying type of an entity
 (either `std::uint16_t`, `std::uint32_t` or `std::uint64_t`) can be specified
 when defining a registry (actually the `DefaultRegistry` is nothing more than a
@@ -432,21 +438,21 @@ velocity.dy = 0.;
 ```
 
 In case users want to assign a component to an entity, but it's unknown whether
-the entity already has it or not, `accomodate` does the work in a single call
+the entity already has it or not, `accommodate` does the work in a single call
 (there is a performance penalty to pay for this mainly due to the fact that it
 has to check if the entity already has the given component or not):
 
 ```cpp
-registry.accomodate<Position>(entity, 0., 0.);
+registry.accommodate<Position>(entity, 0., 0.);
 
 // ...
 
-Velocity &velocity = registry.accomodate<Velocity>(entity);
+Velocity &velocity = registry.accommodate<Velocity>(entity);
 velocity.dx = 0.;
 velocity.dy = 0.;
 ```
 
-Note that `accomodate` is a sliglhty faster alternative for the following
+Note that `accommodate` is a slightly faster alternative for the following
 `if`/`else` statement and nothing more:
 
 ```cpp
@@ -890,6 +896,14 @@ the best way to do it. However, feel free to use it at your own risk.
 
 ## View: to persist or not to persist?
 
+First of all, it is worth answering an obvious question: why views?<br/>
+Roughly speaking, they are a good tool to enforce single responsibility. A
+system that has access to a registry can create and destroy entities, as well as
+assign and remove components. On the other side, a system that has access to a
+view can only iterate entities and their components as well as modify their data
+members.<br/>
+It is a subtle difference that can help designing a better software sometimes.
+
 There are mainly two kinds of views: standard (also known as `View`) and
 persistent (also known as `PersistentView`).<br/>
 Both of them have pros and cons to take in consideration. In particular:
@@ -967,7 +981,7 @@ terms of performance in all the situation. This kind of views can access the
 underlying data structures directly and avoid superfluous checks.<br/>
 They offer a bunch of functionalities to get the number of entities they are
 going to return and a raw access to the entity list as well as to the component
-list.<br/>
+list. It's also possible to ask a view if it contains a given entity.<br/>
 Refer to the [official documentation](https://skypjack.github.io/entt/) for all
 the details.
 
@@ -1012,7 +1026,8 @@ set of candidates in order to speed up iterations.<br/>
 They offer fewer functionalities than their companion views for single
 component. In particular, a multi component standard view exposes utility
 functions to reset its internal state (optimization purposes) and to get the
-estimated number of entities it is going to return.<br/>
+estimated number of entities it is going to return. It's also possible to ask a
+view if it contains a given entity.<br/>
 Refer to the [official documentation](https://skypjack.github.io/entt/) for all
 the details.
 
@@ -1088,7 +1103,8 @@ immediately and does nothing.
 A persistent view offers a bunch of functionalities to get the number of
 entities it's going to return, a raw access to the entity list and the
 possibility to sort the underlying data structures according to the order of one
-of the components for which it has been constructed.<br/>
+of the components for which it has been constructed. It's also possible to ask a
+view if it contains a given entity.<br/>
 Refer to the [official documentation](https://skypjack.github.io/entt/) for all
 the details.
 
@@ -1844,7 +1860,7 @@ There are two types of signal handlers in `EnTT`, internally called _managed_
 and _unmanaged_.<br/>
 They differ in the way they work around the tradeoff between performance, memory
 usage and safety. Managed listeners must be wrapped in an `std::shared_ptr` and
-the sink will take care of disconneting them whenever they die. Unmanaged
+the sink will take care of disconnecting them whenever they die. Unmanaged
 listeners can be any kind of objects and the client is in charge of connecting
 and disconnecting them from a sink to avoid crashes due to different lifetimes.
 
@@ -2219,7 +2235,7 @@ As an example:
 
 ```cpp
 dispatcher.trigger<AnEvent>(42);
-dispatcher.trigget<AnotherEvent>();
+dispatcher.trigger<AnotherEvent>();
 ```
 
 Listeners are invoked immediately, order of execution isn't guaranteed. This

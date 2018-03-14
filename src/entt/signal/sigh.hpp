@@ -100,7 +100,7 @@ class SigH;
  *
  * * `Param` is a type to which `Ret` can be converted.
  * * The return type is true if the handler must stop collecting data, false
- *   otherwise.
+ * otherwise.
  *
  * @tparam Ret Return type of a function type.
  * @tparam Args Types of arguments of a function type.
@@ -229,7 +229,7 @@ public:
      * @param args Arguments to use to invoke listeners.
      */
     void publish(Args... args) {
-        for(auto pos = calls.size(); pos > size_type{0}; --pos) {
+        for(auto pos = calls.size(); pos; --pos) {
             auto &call = calls[pos-1];
             call.second(call.first, args...);
         }
@@ -243,7 +243,7 @@ public:
     collector_type collect(Args... args) {
         collector_type collector;
 
-        for(auto pos = calls.size(); pos > size_type{0}; --pos) {
+        for(auto pos = calls.size(); pos; --pos) {
             auto &call = calls[pos-1];
 
             if(!this->invoke(collector, call.second, call.first, args...)) {

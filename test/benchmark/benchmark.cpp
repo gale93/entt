@@ -1,9 +1,8 @@
-#include <gtest/gtest.h>
 #include <iostream>
 #include <cstddef>
 #include <cstdint>
 #include <chrono>
-#include <vector>
+#include <gtest/gtest.h>
 #include <entt/entity/registry.hpp>
 
 struct Position {
@@ -17,7 +16,7 @@ struct Velocity {
 };
 
 template<std::size_t>
-struct Comp {};
+struct Comp { int x; };
 
 struct Timer final {
     Timer(): start{std::chrono::system_clock::now()} {}
@@ -47,19 +46,18 @@ TEST(Benchmark, Construct) {
 
 TEST(Benchmark, Destroy) {
     entt::DefaultRegistry registry;
-    std::vector<entt::DefaultRegistry::entity_type> entities{};
 
     std::cout << "Destroying 1000000 entities" << std::endl;
 
     for(std::uint64_t i = 0; i < 1000000L; i++) {
-        entities.push_back(registry.create());
+        registry.create();
     }
 
     Timer timer;
 
-    for(auto entity: entities) {
+    registry.each([&registry](auto entity) {
         registry.destroy(entity);
-    }
+    });
 
     timer.elapsed();
 }
@@ -78,11 +76,11 @@ TEST(Benchmark, IterateCreateDeleteSingleComponent) {
             registry.create<Position>();
         }
 
-        for(auto entity: view) {
+        view.each([&registry](auto entity, auto &&...) {
             if(rand() % 2 == 0) {
                 registry.destroy(entity);
             }
-        }
+        });
     }
 
     timer.elapsed();
@@ -281,13 +279,11 @@ TEST(Benchmark, IterateTenComponentsPersistent1M) {
 
 TEST(Benchmark, SortSingle) {
     entt::DefaultRegistry registry;
-    std::vector<entt::DefaultRegistry::entity_type> entities{};
 
     std::cout << "Sort 150000 entities, one component" << std::endl;
 
     for(std::uint64_t i = 0; i < 150000L; i++) {
-        auto entity = registry.create<Position>({ i, i });
-        entities.push_back(entity);
+        registry.create<Position>({ i, i });
     }
 
     Timer timer;
@@ -301,13 +297,11 @@ TEST(Benchmark, SortSingle) {
 
 TEST(Benchmark, SortMulti) {
     entt::DefaultRegistry registry;
-    std::vector<entt::DefaultRegistry::entity_type> entities{};
 
     std::cout << "Sort 150000 entities, two components" << std::endl;
 
     for(std::uint64_t i = 0; i < 150000L; i++) {
-        auto entity = registry.create<Position, Velocity>({ i, i }, { i, i });
-        entities.push_back(entity);
+        registry.create<Position, Velocity>({ i, i }, { i, i });
     }
 
     registry.sort<Position>([](const auto &lhs, const auto &rhs) {

@@ -431,7 +431,7 @@ class ContinuousLoader final {
 
         each(archive, [&archive, this](auto entity) {
             entity = restore(entity);
-            archive(registry.template accomodate<Component>(entity));
+            archive(registry.template accommodate<Component>(entity));
         });
     }
 
@@ -441,7 +441,7 @@ class ContinuousLoader final {
 
         each(archive, [&archive, member..., this](auto entity) {
             entity = restore(entity);
-            auto &component = registry.template accomodate<Component>(entity);
+            auto &component = registry.template accommodate<Component>(entity);
             archive(component);
 
             using accumulator_type = int[];

@@ -2,6 +2,7 @@
 #define ENTT_ENTITY_VIEW_HPP
 
 
+#include <cassert>
 #include <array>
 #include <tuple>
 #include <utility>
@@ -26,7 +27,7 @@ class Registry;
  *
  * A persistent view returns all the entities and only the entities that have
  * at least the given components. Moreover, it's guaranteed that the entity list
- * is thightly packed in memory for fast iterations.<br/>
+ * is tightly packed in memory for fast iterations.<br/>
  * In general, persistent views don't stay true to the order of any set of
  * components unless users explicitly sort them.
  *
@@ -78,7 +79,7 @@ class PersistentView final {
     {}
 
 public:
-    /*! Input iterator type. */
+    /*! @brief Input iterator type. */
     using iterator_type = typename view_type::iterator_type;
     /*! @brief Underlying entity identifier. */
     using entity_type = typename view_type::entity_type;
@@ -147,6 +148,15 @@ public:
     }
 
     /**
+     * @brief Checks if a view contains an entity.
+     * @param entity A valid entity identifier.
+     * @return True if the view contains the given entity, false otherwise.
+     */
+    bool contains(entity_type entity) const noexcept {
+        return view.has(entity) && (view.data()[view.get(entity)] == entity);
+    }
+
+    /**
      * @brief Returns the component assigned to the given entity.
      *
      * Prefer this function instead of `Registry::get` during iterations. It has
@@ -156,8 +166,8 @@ public:
      * Attempting to use an invalid component type results in a compilation
      * error. Attempting to use an entity that doesn't belong to the view
      * results in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if
-     * the view doesn't contain the given entity.
+     * An assertion will abort the execution at runtime in debug mode if the
+     * view doesn't contain the given entity.
      *
      * @tparam Comp Type of the component to get.
      * @param entity A valid entity identifier.
@@ -165,21 +175,22 @@ public:
      */
     template<typename Comp>
     const Comp & get(entity_type entity) const noexcept {
+        assert(contains(entity));
         return std::get<pool_type<Comp> &>(pools).get(entity);
     }
 
     /**
      * @brief Returns the component assigned to the given entity.
      *
-     * Prefer this function instead of `Registry::get` during iterations.
-     * It has far better performance than its companion function.
+     * Prefer this function instead of `Registry::get` during iterations. It has
+     * far better performance than its companion function.
      *
      * @warning
      * Attempting to use an invalid component type results in a compilation
      * error. Attempting to use an entity that doesn't belong to the view
      * results in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if
-     * the view doesn't contain the given entity.
+     * An assertion will abort the execution at runtime in debug mode if the
+     * view doesn't contain the given entity.
      *
      * @tparam Comp Type of the component to get.
      * @param entity A valid entity identifier.
@@ -200,8 +211,8 @@ public:
      * Attempting to use invalid component types results in a compilation error.
      * Attempting to use an entity that doesn't belong to the view results in
      * undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if
-     * the view doesn't contain the given entity.
+     * An assertion will abort the execution at runtime in debug mode if the
+     * view doesn't contain the given entity.
      *
      * @tparam Comp Types of the components to get.
      * @param entity A valid entity identifier.
@@ -210,6 +221,7 @@ public:
     template<typename... Comp>
     std::enable_if_t<(sizeof...(Comp) > 1), std::tuple<const Comp &...>>
     get(entity_type entity) const noexcept {
+        assert(contains(entity));
         return std::tuple<const Comp &...>{get<Comp>(entity)...};
     }
 
@@ -223,8 +235,8 @@ public:
      * Attempting to use invalid component types results in a compilation error.
      * Attempting to use an entity that doesn't belong to the view results in
      * undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if
-     * the view doesn't contain the given entity.
+     * An assertion will abort the execution at runtime in debug mode if the
+     * view doesn't contain the given entity.
      *
      * @tparam Comp Types of the components to get.
      * @param entity A valid entity identifier.
@@ -233,6 +245,7 @@ public:
     template<typename... Comp>
     std::enable_if_t<(sizeof...(Comp) > 1), std::tuple<Comp &...>>
     get(entity_type entity) noexcept {
+        assert(contains(entity));
         return std::tuple<Comp &...>{get<Comp>(entity)...};
     }
 
@@ -253,7 +266,7 @@ public:
      */
     template<typename Func>
     void each(Func func) const {
-        for(auto entity: *this) {
+        for(auto entity: view) {
             func(entity, get<Component>(entity)...);
         }
     }
@@ -367,13 +380,13 @@ class View final {
         inline bool valid() const noexcept {
             const auto entity = *begin;
             const auto sz = size_type(entity & traits_type::entity_mask);
-            auto i = unchecked.size();
+            auto pos = unchecked.size();
 
             if(sz < extent) {
-                for(; i && unchecked[i-1]->fast(entity); --i);
+                for(; pos && unchecked[pos-1]->fast(entity); --pos);
             }
 
-            return !i;
+            return !pos;
         }
 
     public:
@@ -435,7 +448,7 @@ class View final {
     }
 
 public:
-    /*! Input iterator type. */
+    /*! @brief Input iterator type. */
     using iterator_type = Iterator;
     /*! @brief Underlying entity identifier. */
     using entity_type = typename view_type::entity_type;
@@ -490,17 +503,34 @@ public:
     }
 
     /**
+     * @brief Checks if a view contains an entity.
+     * @param entity A valid entity identifier.
+     * @return True if the view contains the given entity, false otherwise.
+     */
+    bool contains(entity_type entity) const noexcept {
+        const auto extent = std::min({ std::get<pool_type<Component> &>(pools).extent()... });
+        const auto sz = size_type(entity & traits_type::entity_mask);
+        auto pos = unchecked.size();
+
+        if(sz < extent && view->has(entity) && (view->data()[view->get(entity)] == entity)) {
+            for(; pos && unchecked[pos-1]->fast(entity); --pos);
+        }
+
+        return !pos;
+    }
+
+    /**
      * @brief Returns the component assigned to the given entity.
      *
-     * Prefer this function instead of `Registry::get` during iterations.
-     * It has far better performance than its companion function.
+     * Prefer this function instead of `Registry::get` during iterations. It has
+     * far better performance than its companion function.
      *
      * @warning
      * Attempting to use an invalid component type results in a compilation
      * error. Attempting to use an entity that doesn't belong to the view
      * results in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if
-     * the view doesn't contain the given entity.
+     * An assertion will abort the execution at runtime in debug mode if the
+     * view doesn't contain the given entity.
      *
      * @tparam Comp Type of the component to get.
      * @param entity A valid entity identifier.
@@ -508,6 +538,7 @@ public:
      */
     template<typename Comp>
     const Comp & get(entity_type entity) const noexcept {
+        assert(contains(entity));
         return std::get<pool_type<Comp> &>(pools).get(entity);
     }
 
@@ -521,8 +552,8 @@ public:
      * Attempting to use an invalid component type results in a compilation
      * error. Attempting to use an entity that doesn't belong to the view
      * results in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if
-     * the view doesn't contain the given entity.
+     * An assertion will abort the execution at runtime in debug mode if the
+     * view doesn't contain the given entity.
      *
      * @tparam Comp Type of the component to get.
      * @param entity A valid entity identifier.
@@ -543,8 +574,8 @@ public:
      * Attempting to use invalid component types results in a compilation error.
      * Attempting to use an entity that doesn't belong to the view results in
      * undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if
-     * the view doesn't contain the given entity.
+     * An assertion will abort the execution at runtime in debug mode if the
+     * view doesn't contain the given entity.
      *
      * @tparam Comp Types of the components to get.
      * @param entity A valid entity identifier.
@@ -553,6 +584,7 @@ public:
     template<typename... Comp>
     std::enable_if_t<(sizeof...(Comp) > 1), std::tuple<const Comp &...>>
     get(entity_type entity) const noexcept {
+        assert(contains(entity));
         return std::tuple<const Comp &...>{get<Comp>(entity)...};
     }
 
@@ -566,8 +598,8 @@ public:
      * Attempting to use invalid component types results in a compilation error.
      * Attempting to use an entity that doesn't belong to the view results in
      * undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if
-     * the view doesn't contain the given entity.
+     * An assertion will abort the execution at runtime in debug mode if the
+     * view doesn't contain the given entity.
      *
      * @tparam Comp Types of the components to get.
      * @param entity A valid entity identifier.
@@ -576,6 +608,7 @@ public:
     template<typename... Comp>
     std::enable_if_t<(sizeof...(Comp) > 1), std::tuple<Comp &...>>
     get(entity_type entity) noexcept {
+        assert(contains(entity));
         return std::tuple<Comp &...>{get<Comp>(entity)...};
     }
 
@@ -596,8 +629,20 @@ public:
      */
     template<typename Func>
     void each(Func func) const {
-        for(auto entity: *this) {
-            func(entity, get<Component>(entity)...);
+        const auto extent = std::min({ std::get<pool_type<Component> &>(pools).extent()... });
+
+        for(auto entity: *view) {
+            const auto sz = size_type(entity & traits_type::entity_mask);
+
+            if(sz < extent) {
+                auto pos = unchecked.size();
+
+                for(; pos && unchecked[pos-1]->fast(entity); --pos);
+
+                if(!pos) {
+                    func(entity, get<Component>(entity)...);
+                }
+            }
         }
     }
 
@@ -665,7 +710,7 @@ private:
  *
  * Single component views are specialized in order to get a boost in terms of
  * performance. This kind of views can access the underlying data structure
- * directly and avoid superflous checks.<br/>
+ * directly and avoid superfluous checks.<br/>
  * Order of elements during iterations are highly dependent on the order of the
  * underlying data structure. See SparseSet and its specializations for more
  * details.
@@ -701,6 +746,7 @@ class View<Entity, Component> final {
     /*! @brief A registry is allowed to create views. */
     friend class Registry<Entity>;
 
+    using view_type = SparseSet<Entity>;
     using pool_type = SparseSet<Entity, Component>;
 
     View(pool_type &pool) noexcept
@@ -708,13 +754,13 @@ class View<Entity, Component> final {
     {}
 
 public:
-    /*! Input iterator type. */
+    /*! @brief Input iterator type. */
     using iterator_type = typename pool_type::iterator_type;
     /*! @brief Underlying entity identifier. */
     using entity_type = typename pool_type::entity_type;
     /*! @brief Unsigned integer type. */
     using size_type = typename pool_type::size_type;
-    /*! Type of the component iterated by the view. */
+    /*! @brief Type of the component iterated by the view. */
     using raw_type = typename pool_type::object_type;
 
     /**
@@ -811,6 +857,15 @@ public:
     }
 
     /**
+     * @brief Checks if a view contains an entity.
+     * @param entity A valid entity identifier.
+     * @return True if the view contains the given entity, false otherwise.
+     */
+    bool contains(entity_type entity) const noexcept {
+        return pool.has(entity) && (pool.data()[pool.view_type::get(entity)] == entity);
+    }
+
+    /**
      * @brief Returns the component assigned to the given entity.
      *
      * Prefer this function instead of `Registry::get` during iterations. It has
@@ -826,6 +881,7 @@ public:
      * @return The component assigned to the entity.
      */
     const Component & get(entity_type entity) const noexcept {
+        assert(contains(entity));
         return pool.get(entity);
     }
 
@@ -864,7 +920,7 @@ public:
      */
     template<typename Func>
     void each(Func func) const {
-        for(auto entity: *this) {
+        for(auto entity: pool) {
             func(entity, get(entity));
         }
     }
